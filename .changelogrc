@@ -1,5 +1,5 @@
 {
-  "name": "chagelog-cli",
+  "name": "changelog-cli",
   "extra_commit_args": [],
   "sections": [
     "Feature",

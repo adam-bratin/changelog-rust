@@ -11,17 +11,17 @@ use dialoguer::{theme::ColorfulTheme, Input, Select};
 use std::path::Path;
 
 fn get_type(sections: &[String]) -> String {
-    let mut result = &String::new();
+    let mut result = String::new();
     let index = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("Select Changelog Type")
         .items(&sections)
         .interact()
         .ok();
     result = match index {
-        Some(i) => sections.get(i).unwrap_or_else(|| result),
+        Some(i) => sections.get(i).unwrap_or(&result).clone(),
         _ => result,
     };
-    result.clone()
+    result
 }
 
 fn get_description(change_type: &str) -> String {
@@ -60,6 +60,6 @@ pub async fn run(cli: &ApplicationArgs, cmd: &GenerateCommand) -> NewResult<()> 
     let date = Utc::now();
     let filename = ChangeFile::new_filename(Some(date)).await?;
     let out_path = Path::new(&cmd.output).join(filename);
-    let change = ChangeFile::new(date, get_author().await?, change_type, description);
+    let change = ChangeFile::new(date, get_author().await?, change_type.clone(), description);
     write_text_to_file(&out_path, &change.to_json()?).await
 }

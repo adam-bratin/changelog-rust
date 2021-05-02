@@ -2,7 +2,7 @@ use super::{my_date_format, serializable::Serializable};
 use crate::{fs::*, git::*, NewResult};
 use chrono::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::path::Path;
 extern crate sanitize_filename;
 use sanitize_filename::{sanitize_with_options, Options};
 
@@ -41,24 +41,20 @@ impl ChangeFile {
         };
         let branch_name = get_branch_name().await?;
         let filename = format!("{}-{}.json", branch_name, _date.format("%vT%T"));
-        if crate::IS_WINDOWS {
-            let options: Options = Options {
-                truncate: crate::IS_WINDOWS,
-                windows: crate::IS_WINDOWS,
-                replacement: "_",
-            };
-            Ok(sanitize_with_options(filename, options))
-        } else {
-            Ok(filename)
-        }
+        let options: Options = Options {
+            truncate: true,
+            windows: true,
+            replacement: "_",
+        };
+        Ok(sanitize_with_options(filename, options))
     }
 
-    async fn load_from_file(input: &PathBuf) -> NewResult<ChangeFile> {
+    async fn load_from_file(input: &Path) -> NewResult<ChangeFile> {
         let contents = read_text_from_file(input).await?;
         ChangeFile::from_json(&contents)
     }
 
-    pub async fn load(input: &PathBuf, labels: &[String]) -> Option<ChangeFile> {
+    pub async fn load(input: &Path, labels: &[String]) -> Option<ChangeFile> {
         match ChangeFile::load_from_file(input).await.ok() {
             Some(change) => match ChangeFile::is_valid(&change, labels) {
                 true => Some(change),
