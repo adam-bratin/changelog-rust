@@ -1,16 +1,10 @@
-name: CI
-# Controls when the action will run.
+name: Release
 on:
-  # Triggers the workflow on push or pull request events but only for the main branch
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
-  # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 env:
   MAJOR: 1
   MINOR: 0
+
 jobs:
   setup:
     runs-on: ubuntu-latest
@@ -24,73 +18,8 @@ jobs:
         run: |
           sudo apt-get install jq
           echo "::set-output name=EXECUTABLE_NAME::$(jq '.name' .changelogrc | tr -d '"')"
-
-  check:
-    name: Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: Swatinem/rust-cache@v1
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: check
-
-  test:
-    name: Test Suite
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: Swatinem/rust-cache@v1
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: test
-
-  fmt:
-    name: Rustfmt
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: Swatinem/rust-cache@v1
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - run: rustup component add rustfmt
-      - uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
-
-  clippy:
-    name: Clippy
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: Swatinem/rust-cache@v1
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - run: rustup component add clippy
-      - uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: -- -D warnings
-
   build_release:
-    needs: [setup, check, test, fmt, clippy]
+    needs: [setup]
     strategy:
       matrix:
         include:
@@ -147,3 +76,42 @@ jobs:
           name: ${{ matrix.target }}
           path: ./target/${{ matrix.target }}/release/${{ needs.setup.outputs.EXECUTABLE_NAME }}${{ matrix.suffix }}
           if-no-files-found: error
+
+  release:
+    needs: [build_release, setup]
+    env:
+      LINUX_EXE: artifacts/x86_64-unknown-linux-musl/changelog-cli
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
+        with:
+          path: artifacts/
+      - shell: bash
+        name: Zip exes
+        id: zip_exes
+        run: |
+          shopt -s globstar
+          shopt -s extglob
+          cd artifacts/
+          for input in $(ls -d -- **/changelog-cli?(.*)); do
+          chmod +x $input
+          zip -j "$(basename $(dirname $input)).zip" $input
+          done
+      - name: Generate Changelog
+        id: generate_changelog
+        run: |
+          ${{ env.LINUX_EXE }} merge -v ${{needs.setup.outputs.VERSION}} -d
+      - name: Create Release
+        id: create_release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+        run: |
+          gh release create v${{ needs.setup.outputs.VERSION }} -t v${{ needs.setup.outputs.VERSION }} -F CHANGELOG.md ./artifacts/*.zip --target ${{ github.sha }}
+      - name: Push removed changed files
+        id: commit_changes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          remote_repo="https://${GITHUB_ACTOR}:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git push "${remote_repo}" HEAD:"${INPUT_BRANCH}" --force
