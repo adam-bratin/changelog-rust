@@ -101,6 +101,8 @@ jobs:
       - name: Generate Changelog
         id: generate_changelog
         run: |
+          git config --local user.name 'github-actions[bot]'
+          git config --local user.email 'github-actions[bot]@users.noreply.github.com'
           ${{ env.LINUX_EXE }} merge -v ${{needs.setup.outputs.VERSION}} -d
           git log
       # - name: Create Release
@@ -109,9 +111,22 @@ jobs:
       #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
       #   run: |
       #     gh release create v${{ needs.setup.outputs.VERSION }} -t v${{ needs.setup.outputs.VERSION }} -F CHANGELOG.md ./artifacts/*.zip --target ${{ github.sha }}
-      - name: Push removed changed files
-        id: commit_changes
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          git push --force
+      - name: Disable Branch Protections
+        uses: benjefferies/branch-protection-bot@1.0.5
+        id: disable_protections
+        if: always()
+        with:
+          access-token: ${{ secrets.CI_PUSH_TOKEN }}
+          enforce_admins: false
+      - name: Push changes
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}
+      - name: Enable Branch Protections
+        id: enable_protections
+        uses: benjefferies/branch-protection-bot@1.0.5
+        if: always()
+        with:
+          access-token: ${{ secrets.CI_PUSH_TOKEN }}
+          enforce_admins: true
