@@ -94,20 +94,11 @@ jobs:
     strategy:
       matrix:
         include:
-          # 32-bit MIPS(-BE) (that is: big endian)
           - {
               rust: stable,
               os: ubuntu-latest,
               useCross: true,
-              target: mips-unknown-linux-gnu,
-              suffix: "",
-            }
-          # 64-bit MIPS(-BE) (that is: big endian)
-          - {
-              rust: stable,
-              os: ubuntu-latest,
-              useCross: true,
-              target: mips64-unknown-linux-gnuabi64,
+              target: x86_64-unknown-linux-musl,
               suffix: "",
             }
           - {
@@ -133,6 +124,7 @@ jobs:
           profile: minimal
           toolchain: stable
           override: true
+          target: x86_64-unknown-linux-musl
       - uses: actions-rs/install@v0.1
         with:
           crate: toml-cli
@@ -152,25 +144,33 @@ jobs:
           args: --release --target=${{ matrix.target }}
       - uses: actions/upload-artifact@master
         with:
-          name: ${{ needs.setup.outputs.EXECUTABLE_NAME }}_${{ matrix.target }}
+          name: ${{ matrix.target }}_${{ needs.setup.outputs.EXECUTABLE_NAME }}
           path: ./target/${{ matrix.target }}/release/${{ needs.setup.outputs.EXECUTABLE_NAME }}${{ matrix.suffix }}
           if-no-files-found: error
 
   release:
-    if: github.ref == 'refs/heads/main'
-    needs: [build_release]
+    # if: github.ref == 'refs/heads/main'
+    needs: [build_release, setup]
     env:
-      LINUX_64_EXE: mips64-unknown-linux-gnuabi64_${{ needs.setup.outputs.EXECUTABLE_NAME }}/${{ needs.setup.outputs.EXECUTABLE_NAME }}
+      LINUX_EXE: artifacts/x86_64-unknown-linux-musl_changelog-cli/changelog-cli
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
       - uses: actions/download-artifact@v2
         with:
           path: artifacts/
+      - shell: bash
+        run: |
+          shopt -s globstar
+          shopt -s extglob
+          ls artifacts/
+          for input in $(ls -d -- **/changelog-cli?(.*)); do
+          chmod +x $input
+          done
       - name: Generate Changelog
         id: generate_changelog
         run: |
-          artifacts/${{env.LINUX_64_EXE}} merge -v ${{needs.setup.outputs.VERSION}} -d
+          ${{ env.LINUX_EXE }} merge -v ${{needs.setup.outputs.VERSION}} -d
       - shell: bash
         run: |
           mkdir ./artifacts/release
@@ -192,4 +192,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
         run: |
-          gh release create --target ${{env.GITHUB_SHA}} -F CHANGELOG.md v${{ needs.setup.outputs.VERSION }} ./artifacts/release/*
+          gh release create --target ${{ github.sha }} v${{ needs.setup.outputs.VERSION }} -F CHANGELOG.md ./artifacts/release/*
