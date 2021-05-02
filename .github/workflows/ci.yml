@@ -144,15 +144,15 @@ jobs:
           args: --release --target=${{ matrix.target }}
       - uses: actions/upload-artifact@master
         with:
-          name: ${{ matrix.target }}_${{ needs.setup.outputs.EXECUTABLE_NAME }}
+          name: ${{ matrix.target }}
           path: ./target/${{ matrix.target }}/release/${{ needs.setup.outputs.EXECUTABLE_NAME }}${{ matrix.suffix }}
           if-no-files-found: error
 
   release:
-    # if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main'
     needs: [build_release, setup]
     env:
-      LINUX_EXE: artifacts/x86_64-unknown-linux-musl_changelog-cli/changelog-cli
+      LINUX_EXE: artifacts/x86_64-unknown-linux-musl/changelog-cli
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -160,36 +160,23 @@ jobs:
         with:
           path: artifacts/
       - shell: bash
+        name: Zip exes
+        id: zip_exes
         run: |
           shopt -s globstar
           shopt -s extglob
-          ls artifacts/
+          cd artifacts/
           for input in $(ls -d -- **/changelog-cli?(.*)); do
           chmod +x $input
+          zip -j "$(basename $(dirname $input)).zip" $input
           done
       - name: Generate Changelog
         id: generate_changelog
         run: |
           ${{ env.LINUX_EXE }} merge -v ${{needs.setup.outputs.VERSION}} -d
-      - shell: bash
-        run: |
-          mkdir ./artifacts/release
-          shopt -s globstar
-          shopt -s extglob
-          for input in $(ls -d -- **/changelog-cli?(.*)); do
-            filename=$(basename $input)
-            if [[ $filename =~ \..{3} ]]
-            then
-              fileext=${BASH_REMATCH[0]}
-            else
-              fileext=
-            fi
-            output="./artifacts/release/$(basename $(dirname $input))$fileext"
-            mv $input $output
-          done
       - name: Create Release
         id: create_release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
         run: |
-          gh release create --target ${{ github.sha }} v${{ needs.setup.outputs.VERSION }} -F CHANGELOG.md ./artifacts/release/*
+          gh release create v${{ needs.setup.outputs.VERSION }} -t v${{ needs.setup.outputs.VERSION }} -F CHANGELOG.md ./artifacts/*.zip --target ${{ github.sha }}

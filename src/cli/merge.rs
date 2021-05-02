@@ -6,7 +6,7 @@ pub struct MergeCommand {
     #[structopt(
         short = "o",
         help = "path to output changelog",
-        default_value = "./CHANGELOG",
+        default_value = "./CHANGELOG.md",
         parse(from_os_str)
     )]
     pub output: PathBuf,
