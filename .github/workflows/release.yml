@@ -118,6 +118,7 @@ jobs:
         with:
           access-token: ${{ secrets.CI_PUSH_TOKEN }}
           enforce_admins: false
+          branch: ${{ github.ref }}
       - name: Push changes
         uses: ad-m/github-push-action@master
         with:
@@ -130,3 +131,4 @@ jobs:
         with:
           access-token: ${{ secrets.CI_PUSH_TOKEN }}
           enforce_admins: true
+          branch: ${{ github.ref }}
