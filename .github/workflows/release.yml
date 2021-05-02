@@ -102,12 +102,13 @@ jobs:
         id: generate_changelog
         run: |
           ${{ env.LINUX_EXE }} merge -v ${{needs.setup.outputs.VERSION}} -d
-      - name: Create Release
-        id: create_release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
-        run: |
-          gh release create v${{ needs.setup.outputs.VERSION }} -t v${{ needs.setup.outputs.VERSION }} -F CHANGELOG.md ./artifacts/*.zip --target ${{ github.sha }}
+          git log
+      # - name: Create Release
+      #   id: create_release
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+      #   run: |
+      #     gh release create v${{ needs.setup.outputs.VERSION }} -t v${{ needs.setup.outputs.VERSION }} -F CHANGELOG.md ./artifacts/*.zip --target ${{ github.sha }}
       - name: Push removed changed files
         id: commit_changes
         env:
