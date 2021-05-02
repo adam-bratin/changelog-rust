@@ -1,0 +1,231 @@
+name: Release CI
+# Controls when the action will run.
+on:
+  # Triggers the workflow on push or pull request events but only for the main branch
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+jobs:
+  env:
+    MAJOR: 1
+    MINOR: 0
+    VERSION: "${{ env.MAJOR }}.${{ env.MAJOR }}.${{ GITHUB_RUN_NUMBER }}"
+  check:
+    name: Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v1
+        with:
+          path: ~/.cargo/registry
+          key: "${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}"
+      - uses: actions/cache@v1
+        with:
+          path: ~/.cargo/git
+          key: "${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}"
+      - uses: actions/cache@v1
+        with:
+          path: target
+          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          command: check
+
+  test:
+    name: Test Suite
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v1
+        with:
+          path: ~/.cargo/registry
+          key: "${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}"
+      - uses: actions/cache@v1
+        with:
+          path: ~/.cargo/git
+          key: "${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}"
+      - uses: actions/cache@v1
+        with:
+          path: target
+          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+
+  fmt:
+    name: Rustfmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v1
+        with:
+          path: ~/.cargo/registry
+          key: "${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}"
+      - uses: actions/cache@v1
+        with:
+          path: ~/.cargo/git
+          key: "${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}"
+      - uses: actions/cache@v1
+        with:
+          path: target
+          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - run: rustup component add rustfmt
+      - uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
+
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v1
+        with:
+          path: ~/.cargo/registry
+          key: "${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}"
+      - uses: actions/cache@v1
+        with:
+          path: ~/.cargo/git
+          key: "${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}"
+      - uses: actions/cache@v1
+        with:
+          path: target
+          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - run: rustup component add clippy
+      - uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: -- -D warnings
+
+  build_release:
+    needs:
+      - version
+      - lints
+      - test
+      - check
+    strategy:
+      matrix:
+        include:
+          # 32-bit MIPS(-BE) (that is: big endian)
+          - {
+              rust: stable,
+              os: ubuntu-latest,
+              useCross: true,
+              target: mips-unknown-linux-gnu,
+              suffix: "",
+            }
+          # 64-bit MIPS(-BE) (that is: big endian)
+          - {
+              rust: stable,
+              os: ubuntu-latest,
+              useCross: true,
+              target: mips64-unknown-linux-gnuabi64,
+              suffix: "",
+            }
+          - {
+              rust: stable,
+              os: macos-latest,
+              useCross: false,
+              target: x86_64-apple-darwin,
+              suffix: "",
+            }
+          - {
+              rust: stable,
+              os: windows-latest,
+              useCross: false,
+              target: x86_64-pc-windows-msvc,
+              suffix: .exe,
+            }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v1
+        with:
+          path: ~/.cargo/registry
+          key: "${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}"
+      - uses: actions/cache@v1
+        with:
+          path: ~/.cargo/git
+          key: "${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}"
+      - uses: actions/cache@v1
+        with:
+          path: target
+          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: "toml-cli"
+      - name: Set EXECUTABLE_NAME
+        run: |
+          echo EXECUTABLE_NAME=$(toml get Cargo.toml package.name | tr -d '"') >> $GITHUB_ENV
+      - name: Bump crate version
+        uses: thomaseizinger/set-crate-version@master
+        with:
+          version: "${{env.VERSION}}"
+      - uses: actions-rs/cargo@v1
+        with:
+          use-cross: ${{ matrix.useCross }}
+          command: build
+          args: --release --target=${{ matrix.target }}
+      - uses: actions/upload-artifact@master
+        with:
+          path: ./target/release/${{ env.EXECUTABLE_NAME }}${{ matrix.suffix }}
+
+  release:
+    if: github.ref == 'refs/heads/master'
+    needs:
+      - build
+    env:
+      LINUX_64_EXE: ${{ env.EXECUTABLE_NAME }}-mips64-unknown-linux-gnuabi64
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set EXECUTABLE_NAME
+        run: |
+          echo EXECUTABLE_NAME=$(toml get Cargo.toml package.name | tr -d '"') >> $GITHUB_ENV
+      - uses: actions/download-artifact@v2
+        with:
+          name: artifacts
+          path: artifacts/
+      - name: Generate Changelog
+        id: generate_changelog
+        run: |
+          chmod +777 artifacts/${{env.LINUX_64_EXE}}
+          artifacts/${{env.LINUX_64_EXE}} merge -v ${{env.VERSION}} -d
+      - name: Create Release
+        id: create_release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+        run: |
+          gh release create --target ${{env.GITHUB_SHA}} -F CHANGELOG.md v${{env.VERSION}} artifacts/*

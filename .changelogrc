@@ -1,0 +1,9 @@
+{
+  "name": "chagelog-cli",
+  "extra_commit_args": [],
+  "sections": [
+    "Feature",
+    "BugFix",
+    "Other"
+  ]
+}
