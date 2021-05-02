@@ -8,28 +8,29 @@ on:
     branches: [main]
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
+env:
+  MAJOR: 1
+  MINOR: 0
 jobs:
-  env:
-    MAJOR: 1
-    MINOR: 0
-    VERSION: "${{ env.MAJOR }}.${{ env.MAJOR }}.${{ GITHUB_RUN_NUMBER }}"
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      EXECUTABLE_NAME: ${{ steps.set_output.outputs.EXECUTABLE_NAME }}
+      VERSION: "${{ env.MAJOR }}.${{ env.MAJOR }}.${{ github.run_number }}"
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set EXECUTABLE_NAME
+        id: set_output
+        run: |
+          sudo apt-get install jq
+          echo "::set-output name=EXECUTABLE_NAME::$(jq '.name' .changelogrc | tr -d '"')"
+
   check:
     name: Check
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/cache@v1
-        with:
-          path: ~/.cargo/registry
-          key: "${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}"
-      - uses: actions/cache@v1
-        with:
-          path: ~/.cargo/git
-          key: "${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}"
-      - uses: actions/cache@v1
-        with:
-          path: target
-          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+      - uses: Swatinem/rust-cache@v1
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -44,18 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/cache@v1
-        with:
-          path: ~/.cargo/registry
-          key: "${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}"
-      - uses: actions/cache@v1
-        with:
-          path: ~/.cargo/git
-          key: "${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}"
-      - uses: actions/cache@v1
-        with:
-          path: target
-          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+      - uses: Swatinem/rust-cache@v1
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -70,18 +60,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/cache@v1
-        with:
-          path: ~/.cargo/registry
-          key: "${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}"
-      - uses: actions/cache@v1
-        with:
-          path: ~/.cargo/git
-          key: "${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}"
-      - uses: actions/cache@v1
-        with:
-          path: target
-          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+      - uses: Swatinem/rust-cache@v1
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -98,18 +77,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/cache@v1
-        with:
-          path: ~/.cargo/registry
-          key: "${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}"
-      - uses: actions/cache@v1
-        with:
-          path: ~/.cargo/git
-          key: "${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}"
-      - uses: actions/cache@v1
-        with:
-          path: target
-          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+      - uses: Swatinem/rust-cache@v1
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -122,11 +90,7 @@ jobs:
           args: -- -D warnings
 
   build_release:
-    needs:
-      - version
-      - lints
-      - test
-      - check
+    needs: [setup, check, test, fmt, clippy]
     strategy:
       matrix:
         include:
@@ -163,34 +127,24 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/cache@v1
-        with:
-          path: ~/.cargo/registry
-          key: "${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}"
-      - uses: actions/cache@v1
-        with:
-          path: ~/.cargo/git
-          key: "${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}"
-      - uses: actions/cache@v1
-        with:
-          path: target
-          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+      - uses: Swatinem/rust-cache@v1
       - uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: stable
           override: true
-      - uses: actions-rs/cargo@v1
+      - uses: actions-rs/install@v0.1
         with:
-          command: install
-          args: "toml-cli"
-      - name: Set EXECUTABLE_NAME
+          crate: toml-cli
+          version: latest
+          use-tool-cache: true
+      - shell: bash
+        env:
+          VERSION: ${{ needs.setup.outputs.VERSION }}
         run: |
-          echo EXECUTABLE_NAME=$(toml get Cargo.toml package.name | tr -d '"') >> $GITHUB_ENV
-      - name: Bump crate version
-        uses: thomaseizinger/set-crate-version@master
-        with:
-          version: "${{env.VERSION}}"
+          TEMP_FILE="$(mktemp)"
+          toml set Cargo.toml package.version "$VERSION" > "$TEMP_FILE"
+          mv "$TEMP_FILE" Cargo.toml
       - uses: actions-rs/cargo@v1
         with:
           use-cross: ${{ matrix.useCross }}
@@ -198,34 +152,44 @@ jobs:
           args: --release --target=${{ matrix.target }}
       - uses: actions/upload-artifact@master
         with:
-          path: ./target/release/${{ env.EXECUTABLE_NAME }}${{ matrix.suffix }}
+          name: ${{ needs.setup.outputs.EXECUTABLE_NAME }}_${{ matrix.target }}
+          path: ./target/${{ matrix.target }}/release/${{ needs.setup.outputs.EXECUTABLE_NAME }}${{ matrix.suffix }}
+          if-no-files-found: error
 
   release:
     if: github.ref == 'refs/heads/master'
-    needs:
-      - build
+    needs: [build_release]
     env:
-      LINUX_64_EXE: ${{ env.EXECUTABLE_NAME }}-mips64-unknown-linux-gnuabi64
+      LINUX_64_EXE: mips64-unknown-linux-gnuabi64_${{ needs.setup.outputs.EXECUTABLE_NAME }}/${{ needs.setup.outputs.EXECUTABLE_NAME }}
     runs-on: ubuntu-latest
-    outputs:
-      upload_url: ${{ steps.create_release.outputs.upload_url }}
     steps:
       - uses: actions/checkout@v2
-      - name: Set EXECUTABLE_NAME
-        run: |
-          echo EXECUTABLE_NAME=$(toml get Cargo.toml package.name | tr -d '"') >> $GITHUB_ENV
       - uses: actions/download-artifact@v2
         with:
-          name: artifacts
           path: artifacts/
       - name: Generate Changelog
         id: generate_changelog
         run: |
-          chmod +777 artifacts/${{env.LINUX_64_EXE}}
-          artifacts/${{env.LINUX_64_EXE}} merge -v ${{env.VERSION}} -d
+          artifacts/${{env.LINUX_64_EXE}} merge -v ${{needs.setup.outputs.VERSION}} -d
+      - shell: bash
+        run: |
+          mkdir ./artifacts/release
+          shopt -s globstar
+          shopt -s extglob
+          for input in $(ls -d -- **/changelog-cli?(.*)); do
+            filename=$(basename $input)
+            if [[ $filename =~ \..{3} ]]
+            then
+              fileext=${BASH_REMATCH[0]}
+            else
+              fileext=
+            fi
+            output="./artifacts/release/$(basename $(dirname $input))$fileext"
+            mv $input $output
+          done
       - name: Create Release
         id: create_release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
         run: |
-          gh release create --target ${{env.GITHUB_SHA}} -F CHANGELOG.md v${{env.VERSION}} artifacts/*
+          gh release create --target ${{env.GITHUB_SHA}} -F CHANGELOG.md v${{ needs.setup.outputs.VERSION }} ./artifacts/release/*

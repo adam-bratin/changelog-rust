@@ -1,6 +1,6 @@
 use crate::{error::ChangelogError, NewResult};
 use std::ffi::OsStr;
-use std::path::PathBuf;
+use std::path::Path;
 use tokio::{join, process::*};
 
 pub async fn run_git_command<I, S>(args: I) -> NewResult<String>
@@ -47,7 +47,7 @@ fn check_git_output(output: &str, err_str: &str) -> NewResult<()> {
     }
 }
 
-pub async fn add(path: &PathBuf) -> NewResult<()> {
+pub async fn add(path: &Path) -> NewResult<()> {
     let result = run_git_command(&[OsStr::new("add"), path.as_os_str()]).await?;
     check_git_output(&result, "failed to add files to git")
 }

@@ -34,7 +34,7 @@ impl Configuration {
         }
     }
 
-    pub async fn parse(input: &PathBuf) -> NewResult<Configuration> {
+    pub async fn parse(input: &Path) -> NewResult<Configuration> {
         let json = read_text_from_file(input).await?;
         Configuration::from_json(&json)
     }
