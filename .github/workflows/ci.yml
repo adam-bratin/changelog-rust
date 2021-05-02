@@ -157,7 +157,7 @@ jobs:
           if-no-files-found: error
 
   release:
-    if: github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/main'
     needs: [build_release]
     env:
       LINUX_64_EXE: mips64-unknown-linux-gnuabi64_${{ needs.setup.outputs.EXECUTABLE_NAME }}/${{ needs.setup.outputs.EXECUTABLE_NAME }}
