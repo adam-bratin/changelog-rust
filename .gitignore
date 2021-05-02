@@ -74,3 +74,6 @@ $RECYCLE.BIN/
 # End of https://www.toptal.com/developers/gitignore/api/rust,vscode,osx,windows
 # CI
 artifacts/
+
+# ignore auto gen CHANGELOG.md
+CHANGELOG.md
