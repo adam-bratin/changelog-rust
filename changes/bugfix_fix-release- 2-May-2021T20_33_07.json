@@ -1,6 +1,0 @@
-{
-  "date": "2021-05-02T20:33:07.925031+00:00",
-  "author": "Adam Bratin adam.bratin@gmail.com",
-  "label": "Feature",
-  "description": "- Added command merge to merge change files into a single changelog base on template"
-}
