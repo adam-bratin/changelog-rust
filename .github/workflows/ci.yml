@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       EXECUTABLE_NAME: ${{ steps.set_output.outputs.EXECUTABLE_NAME }}
-      VERSION: "${{ env.MAJOR }}.${{ env.MAJOR }}.${{ github.run_number }}"
+      VERSION: "${{ env.MAJOR }}.${{ env.MINOR }}.${{ github.run_number }}"
     steps:
       - uses: actions/checkout@v2
       - name: Set EXECUTABLE_NAME
