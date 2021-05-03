@@ -18,6 +18,13 @@ jobs:
         run: |
           sudo apt-get install jq
           echo "::set-output name=EXECUTABLE_NAME::$(jq '.name' .changelogrc | tr -d '"')"
+      - name: "Check if user has write access"
+        uses: "lannonbr/repo-permission-check-action@2.0.0"
+        with:
+          permission: "admin"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   build_release:
     needs: [setup]
     strategy:
@@ -84,6 +91,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+        with:
+          token: ${{secrets.CI_PUSH_TOKEN}}
       - uses: actions/download-artifact@v2
         with:
           path: artifacts/
@@ -98,19 +107,6 @@ jobs:
           chmod +x $input
           zip -j "$(basename $(dirname $input)).zip" $input
           done
-      - name: Generate Changelog
-        id: generate_changelog
-        run: |
-          git config --local user.name 'github-actions[bot]'
-          git config --local user.email 'github-actions[bot]@users.noreply.github.com'
-          ${{ env.LINUX_EXE }} merge -v ${{needs.setup.outputs.VERSION}} -d
-          git log
-      # - name: Create Release
-      #   id: create_release
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
-      #   run: |
-      #     gh release create v${{ needs.setup.outputs.VERSION }} -t v${{ needs.setup.outputs.VERSION }} -F CHANGELOG.md ./artifacts/*.zip --target ${{ github.sha }}
       - name: Disable Branch Protections
         uses: benjefferies/branch-protection-bot@1.0.5
         id: disable_protections
@@ -119,11 +115,13 @@ jobs:
           access-token: ${{ secrets.CI_PUSH_TOKEN }}
           enforce_admins: false
           branch: ${{ github.ref }}
-      - name: Push changes
-        uses: ad-m/github-push-action@master
-        with:
-          github_token: ${{ secrets.CI_PUSH_TOKEN }}
-          branch: ${{ github.ref }}
+      - name: Generate Changelog
+        id: generate_changelog
+        run: |
+          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+          git config user.name "$GITHUB_ACTOR"
+          ${{ env.LINUX_EXE }} merge -v ${{needs.setup.outputs.VERSION}} -d
+          git push
       - name: Enable Branch Protections
         id: enable_protections
         uses: benjefferies/branch-protection-bot@1.0.5
@@ -132,3 +130,9 @@ jobs:
           access-token: ${{ secrets.CI_PUSH_TOKEN }}
           enforce_admins: true
           branch: ${{ github.ref }}
+      # - name: Create Release
+      #   id: create_release
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+      #   run: |
+      #     gh release create v${{ needs.setup.outputs.VERSION }} -t v${{ needs.setup.outputs.VERSION }} -F CHANGELOG.md ./artifacts/*.zip --target $(git rev-parse HEAD | xargs)
