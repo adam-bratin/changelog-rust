@@ -107,6 +107,18 @@ jobs:
           chmod +x $input
           zip -j "$(basename $(dirname $input)).zip" $input
           done
+      - uses: Swatinem/rust-cache@v1
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+          target: x86_64-unknown-linux-musl
+      - uses: actions-rs/install@v0.1
+        with:
+          crate: toml-cli
+          version: latest
+          use-tool-cache: true
       - shell: bash
         env:
           VERSION: ${{ needs.setup.outputs.VERSION }}
@@ -141,6 +153,6 @@ jobs:
       - name: Create Release
         id: create_release
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+          GITHUB_TOKEN: ${{ secrets.CI_PUSH_TOKEN }} # This token is provided by Actions, you do not need to create your own token
         run: |
           gh release create v${{ needs.setup.outputs.VERSION }} -t v${{ needs.setup.outputs.VERSION }} -F CHANGELOG.md ./artifacts/*.zip --target $(git rev-parse HEAD | xargs)
