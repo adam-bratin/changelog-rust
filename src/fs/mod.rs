@@ -13,3 +13,8 @@ pub async fn write_text_to_file(input: &Path, data: &str) -> NewResult<()> {
     tokio::fs::write(input, data).await?;
     Ok(())
 }
+
+pub async fn ensure_dir(input: &Path) -> NewResult<()> {
+    tokio::fs::create_dir_all(&input).await?;
+    Ok(())
+}
