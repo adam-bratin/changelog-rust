@@ -61,5 +61,7 @@ pub async fn run(cli: &ApplicationArgs, cmd: &GenerateCommand) -> NewResult<()> 
     let filename = ChangeFile::new_filename(Some(date)).await?;
     let out_path = Path::new(&cmd.output).join(filename);
     let change = ChangeFile::new(date, get_author().await?, change_type.clone(), description);
-    write_text_to_file(&out_path, &change.to_json()?).await
+    ensure_dir(&cmd.output).await?;
+    let output = format!("{}\n", &change.to_json()?);
+    write_text_to_file(&out_path, output.as_str()).await
 }

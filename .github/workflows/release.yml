@@ -107,6 +107,14 @@ jobs:
           chmod +x $input
           zip -j "$(basename $(dirname $input)).zip" $input
           done
+      - shell: bash
+        env:
+          VERSION: ${{ needs.setup.outputs.VERSION }}
+        run: |
+          TEMP_FILE="$(mktemp)"
+          toml set Cargo.toml package.version "$VERSION" > "$TEMP_FILE"
+          mv "$TEMP_FILE" Cargo.toml
+          git add Cargo.toml
       - name: Disable Branch Protections
         uses: benjefferies/branch-protection-bot@1.0.5
         id: disable_protections
@@ -130,9 +138,9 @@ jobs:
           access-token: ${{ secrets.CI_PUSH_TOKEN }}
           enforce_admins: true
           branch: ${{ github.ref }}
-      # - name: Create Release
-      #   id: create_release
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
-      #   run: |
-      #     gh release create v${{ needs.setup.outputs.VERSION }} -t v${{ needs.setup.outputs.VERSION }} -F CHANGELOG.md ./artifacts/*.zip --target $(git rev-parse HEAD | xargs)
+      - name: Create Release
+        id: create_release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+        run: |
+          gh release create v${{ needs.setup.outputs.VERSION }} -t v${{ needs.setup.outputs.VERSION }} -F CHANGELOG.md ./artifacts/*.zip --target $(git rev-parse HEAD | xargs)
