@@ -1,6 +1,6 @@
 [package]
 name = "changelog-cli"
-version = "0.1.0"
+version = "1.1.14"
 authors = ["Adam Bratin <adam.bratin@gmail.com>"]
 edition = "2018"
 
