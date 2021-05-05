@@ -45,7 +45,7 @@ pub async fn run(cli: &ApplicationArgs, cmd: &MergeCommand) -> NewResult<()> {
         if ChangeFile::is_valid(change, &config.sections) {
             let section = sections
                 .entry(change.label.clone())
-                .or_insert_with(|| vec![]);
+                .or_insert_with(Vec::new);
             section.push(change);
         }
     });
