@@ -43,14 +43,16 @@ pub async fn run(cli: &ApplicationArgs, cmd: &MergeCommand) -> NewResult<()> {
     let mut sections = HashMap::new();
     changes.iter().for_each(|change| {
         if ChangeFile::is_valid(change, &config.sections) {
-            let section = sections.entry(change.label.clone()).or_insert(vec![]);
+            let section = sections
+                .entry(change.label.clone())
+                .or_insert_with(|| vec![]);
             section.push(change);
         }
     });
     IS_MERGE.store(true, Ordering::Relaxed);
     template_data = sections.iter().fold(template_data, |data, (key, value)| {
         data.insert(key, &value)
-            .expect(format!("failed to encode section: {}", key).as_str())
+            .unwrap_or_else(|_| panic!("failed to encode section: {}", key))
     });
 
     let template = mustache::compile_path(&cmd.template)?;

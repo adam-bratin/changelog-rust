@@ -15,12 +15,12 @@ where
     date.to_rfc3339()
 }
 
-pub fn date_from_str(s: &String) -> NewResult<DateTime<Utc>> {
+pub fn date_from_str(s: &str) -> NewResult<DateTime<Utc>> {
     let parsed = DateTime::parse_from_str(s, DATE_FMT)?;
     Ok(DateTime::from(parsed))
 }
 
-pub fn date_from_rfc(s: &String) -> NewResult<DateTime<Utc>> {
+pub fn date_from_rfc(s: &str) -> NewResult<DateTime<Utc>> {
     let parsed = DateTime::parse_from_rfc3339(s)?;
     Ok(DateTime::from(parsed))
 }
