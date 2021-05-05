@@ -1,6 +1,7 @@
 mod asset;
 mod cli;
 mod commands;
+mod date;
 mod error;
 mod fs;
 mod git;
