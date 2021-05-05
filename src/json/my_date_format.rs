@@ -1,5 +1,9 @@
+use crate::date::*;
 use chrono::{DateTime, Utc};
 use serde::{self, Deserialize, Deserializer, Serializer};
+use std::sync::atomic::{AtomicBool, Ordering};
+
+pub static IS_MERGE: AtomicBool = AtomicBool::new(false);
 
 // The signature of a serialize_with function must follow the pattern:
 //
@@ -12,7 +16,11 @@ pub fn serialize<S>(date: &DateTime<Utc>, serializer: S) -> Result<S::Ok, S::Err
 where
     S: Serializer,
 {
-    serializer.serialize_str(&date.to_rfc3339())
+    let d_str = match IS_MERGE.load(Ordering::Relaxed) {
+        true => date_to_str(date),
+        false => date_to_rfc(date),
+    };
+    serializer.serialize_str(d_str.as_str())
 }
 
 // The signature of a deserialize_with function must follow the pattern:
@@ -27,7 +35,9 @@ where
     D: Deserializer<'de>,
 {
     let s = String::deserialize(deserializer)?;
-    let t = DateTime::parse_from_rfc3339(&s).map_err(serde::de::Error::custom)?;
-    let d: DateTime<Utc> = DateTime::from(t);
-    Ok(d)
+    match IS_MERGE.load(Ordering::Relaxed) {
+        true => date_from_str(&s),
+        false => date_from_rfc(&s),
+    }
+    .map_err(serde::de::Error::custom)
 }

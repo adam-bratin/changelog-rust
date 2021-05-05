@@ -98,7 +98,7 @@ OPTIONS:
 
 ```json
 {
-  "date": "2021-05-03T01:09:43.970959+00:00", //based on rfc3339 format
+  "date": "05/03/2021", // DD/MM/YYY
   "author": "John Smith john.smith@gmail.com", // <git User.name> <git User.email>
   "label": "Feature", // of type Section for more info see [Config File](#config-file)
   "description": "- Added new feature for release" // automatically add bullet to beginning of description
@@ -126,34 +126,68 @@ Below is the default changelog template:
 
 {{date}}
 
+
 ## Changes
 
 ### Features
 
-{{Feature}}
+{{#Feature}}
+{{description}} - by {{author}} on {{date}}
+{{/Feature}}
 
 ### Bugfixes
 
-{{BugFix}}
+{{#BugFix}}
+{{description}} - by {{author}} on {{date}}
+{{/BugFix}}
 
 ### Other changes
 
-{{Other}}
+{{#Other}}
+{{description}} - by {{author}} on {{date}}
+{{/Other}}
 ```
 
 the data accessible to the template is: (This is based on default from init command)
 
 ```json
 {
-  "date": "{month}/{day}/{year}", // date string in this format
+  "date": "05/03/2021", // date string in this format
   "versionNoV": "1.0.0", // the version string passed in without a v at front
   "version": "v1.0.0", // version string passed in with v at front
   "name": "changelog-cli", // application name from .changelogrc
   // There is an entry for each Section from the .changelogrc
-  "Feature": "- Added new feature for release\n",
-  "BugFix": "",
-  "Other": ""
+  "Feature": [
+      {
+        "date": "03/03/2021",
+        "author": "John Smith john.smith@gmail.com",
+        "label": "Feature",
+        "description": "- Added new feature for release"
+    }
+  ],
+  "BugFix": [],
+  "Other": []
 }
 ```
 
-The entry for each sections is a string that is a concatination of each change description plus a new line. TODO:[#7](https://github.com/adam-bratin/changelog-rs/issues/7) Enhance this for more customized presentation of section data
+The entry for each sections is the json object of the change file you can access
+ any property on the change file based on handle bars syntax as shown in example above
+
+The output with the above template and data is:
+```markdown
+# Release Notes changelog-cli Version 1.0.0
+
+05/03/2021
+
+
+## Changes
+
+### Features
+
+- Added new feature for release by John Smith john.smith@gmail.com on 03/03/2021
+
+### Bugfixes
+
+
+### Other changes
+```

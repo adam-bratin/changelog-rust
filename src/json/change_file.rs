@@ -1,10 +1,10 @@
+extern crate sanitize_filename;
 use super::{my_date_format, serializable::Serializable};
 use crate::{fs::*, git::*, NewResult};
 use chrono::prelude::*;
+use sanitize_filename::{sanitize_with_options, Options};
 use serde::{Deserialize, Serialize};
 use std::path::Path;
-extern crate sanitize_filename;
-use sanitize_filename::{sanitize_with_options, Options};
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct ChangeFile {
@@ -62,14 +62,6 @@ impl ChangeFile {
             },
             _ => None,
         }
-    }
-
-    pub fn get_entry(&self) -> String {
-        format!(
-            "{description} - {author}\n",
-            description = self.description,
-            author = self.author,
-        )
     }
 
     pub fn is_valid(change: &ChangeFile, labels: &[String]) -> bool {

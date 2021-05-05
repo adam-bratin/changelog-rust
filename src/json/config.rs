@@ -1,5 +1,6 @@
-use crate::{fs::*, json::serializable::Serializable, NewResult};
 extern crate serde_json;
+use super::serializable::Serializable;
+use crate::{fs::*, NewResult};
 use serde::{Deserialize, Serialize};
 use std::path::*;
 use strum::VariantNames;
