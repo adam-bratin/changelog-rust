@@ -127,6 +127,13 @@ jobs:
           toml set Cargo.toml package.version "$VERSION" > "$TEMP_FILE"
           mv "$TEMP_FILE" Cargo.toml
           git add Cargo.toml
+      - uses: actions-rs/cargo@v1
+        with:
+          command: install
+          args: --path .
+      - shell: bash
+        run: |
+          git add Cargo.lock
       - name: Disable Branch Protections
         uses: benjefferies/branch-protection-bot@1.0.5
         id: disable_protections
