@@ -4,8 +4,14 @@ on:
   # Triggers the workflow on push or pull request events but only for the main branch
   push:
     branches: [main]
+    paths-ignore:
+      - "README.md"
+      - ".changelogrc"
   pull_request:
     branches: [main]
+    paths-ignore:
+      - "README.md"
+      - ".changelogrc"
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 env:
@@ -125,18 +131,6 @@ jobs:
           toolchain: stable
           override: true
           target: x86_64-unknown-linux-musl
-      - uses: actions-rs/install@v0.1
-        with:
-          crate: toml-cli
-          version: latest
-          use-tool-cache: true
-      - shell: bash
-        env:
-          VERSION: ${{ needs.setup.outputs.VERSION }}
-        run: |
-          TEMP_FILE="$(mktemp)"
-          toml set Cargo.toml package.version "$VERSION" > "$TEMP_FILE"
-          mv "$TEMP_FILE" Cargo.toml
       - uses: actions-rs/cargo@v1
         with:
           use-cross: ${{ matrix.useCross }}
