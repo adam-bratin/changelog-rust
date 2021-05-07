@@ -96,7 +96,7 @@ OPTIONS:
 
 ### Changefile schema
 
-```json
+```js
 {
   "date": "05/03/2021", // DD/MM/YYY
   "author": "John Smith john.smith@gmail.com", // <git User.name> <git User.email>
@@ -109,7 +109,7 @@ OPTIONS:
 
 schema:
 
-```json
+```js
 {
   "name": "changelog-cli", // this is the name of your application
   "extra_commit_args": ["--no-verify"], // this is optional if you need to skip git hooks
@@ -125,7 +125,6 @@ Below is the default changelog template:
 # Release Notes {{name}} Version {{versionNoV}}
 
 {{date}}
-
 
 ## Changes
 
@@ -150,7 +149,7 @@ Below is the default changelog template:
 
 the data accessible to the template is: (This is based on default from init command)
 
-```json
+```js
 {
   "date": "05/03/2021", // date string in this format
   "versionNoV": "1.0.0", // the version string passed in without a v at front
@@ -171,14 +170,14 @@ the data accessible to the template is: (This is based on default from init comm
 ```
 
 The entry for each sections is the json object of the change file you can access
- any property on the change file based on handle bars syntax as shown in example above
+any property on the change file based on handle bars syntax as shown in example above
 
 The output with the above template and data is:
+
 ```markdown
 # Release Notes changelog-cli Version 1.0.0
 
 05/03/2021
-
 
 ## Changes
 
@@ -187,7 +186,6 @@ The output with the above template and data is:
 - Added new feature for release by John Smith john.smith@gmail.com on 03/03/2021
 
 ### Bugfixes
-
 
 ### Other changes
 ```
