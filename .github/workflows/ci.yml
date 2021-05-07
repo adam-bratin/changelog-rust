@@ -9,9 +9,7 @@ on:
       - ".changelogrc"
   pull_request:
     branches: [main]
-    paths-ignore:
-      - "README.md"
-      - ".changelogrc"
+    # TODO: #15 figure out way to only run checks on files than need rebuild
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 env:
