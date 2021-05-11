@@ -79,7 +79,12 @@ jobs:
           command: build
           args: --release --target=${{ matrix.target }}
       - uses: actions/upload-artifact@master
-        if: ${{matrix.os}} == 'linux'
+        if: matrix.os == 'ubuntu-latest'
+        with:
+          name: packagefile
+          path: ./Cargo.toml
+      - uses: actions/upload-artifact@master
+        if: matrix.os == 'ubuntu-latest'
         with:
           name: lockfile
           path: ./Cargo.lock
@@ -119,24 +124,15 @@ jobs:
           toolchain: stable
           override: true
           target: x86_64-unknown-linux-musl
-      - uses: actions-rs/install@v0.1
+      - uses: actions/download-artifact@v2
         with:
-          crate: toml-cli
-          version: latest
-          use-tool-cache: true
-      - shell: bash
-        env:
-          VERSION: ${{ needs.setup.outputs.VERSION }}
-        run: |
-          TEMP_FILE="$(mktemp)"
-          toml set Cargo.toml package.version "$VERSION" > "$TEMP_FILE"
-          mv "$TEMP_FILE" Cargo.toml
-          git add Cargo.toml
+          name: packagefile
       - uses: actions/download-artifact@v2
         with:
           name: lockfile
       - shell: bash
         run: |
+          git add Cargo.toml
           git add Cargo.lock
       - name: Disable Branch Protections
         uses: benjefferies/branch-protection-bot@1.0.5
