@@ -1,5 +1,7 @@
 name: Release
 on:
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 env:
   MAJOR: 1
@@ -79,6 +81,11 @@ jobs:
           command: build
           args: --release --target=${{ matrix.target }}
       - uses: actions/upload-artifact@master
+        if: ${{matrix.os}} == 'linux'
+        with:
+          name: lockfile
+          path: ./Cargo.lock
+      - uses: actions/upload-artifact@master
         with:
           name: ${{ matrix.target }}
           path: ./target/${{ matrix.target }}/release/${{ needs.setup.outputs.EXECUTABLE_NAME }}${{ matrix.suffix }}
@@ -127,44 +134,44 @@ jobs:
           toml set Cargo.toml package.version "$VERSION" > "$TEMP_FILE"
           mv "$TEMP_FILE" Cargo.toml
           git add Cargo.toml
-      - uses: actions-rs/cargo@v1
+      - uses: actions/download-artifact@v2
         with:
-          command: install
-          args: --path .
+          name: lockfile
       - shell: bash
         run: |
+          git status
           git add Cargo.lock
-      - name: Disable Branch Protections
-        uses: benjefferies/branch-protection-bot@1.0.5
-        id: disable_protections
-        if: always()
-        with:
-          access-token: ${{ secrets.CI_PUSH_TOKEN }}
-          enforce_admins: false
-          branch: ${{ github.ref }}
-      - name: Generate Changelog
-        id: generate_changelog
-        run: |
-          git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
-          git config user.name "$GITHUB_ACTOR"
-          ${{ env.LINUX_EXE }} merge -v ${{needs.setup.outputs.VERSION}} -d
-          git push
-      - name: Enable Branch Protections
-        id: enable_protections
-        uses: benjefferies/branch-protection-bot@1.0.5
-        if: always()
-        with:
-          access-token: ${{ secrets.CI_PUSH_TOKEN }}
-          enforce_admins: true
-          branch: ${{ github.ref }}
-      - name: Create Github Release
-        id: create_release_github
-        env:
-          GITHUB_TOKEN: ${{ secrets.CI_PUSH_TOKEN }} # This token is provided by Actions, you do not need to create your own token
-        run: |
-          gh release create v${{ needs.setup.outputs.VERSION }} -t v${{ needs.setup.outputs.VERSION }} -F CHANGELOG.md ./artifacts/*.zip --target $(git rev-parse HEAD | xargs)
-      - uses: katyo/publish-crates@v1
-        name: Create Crates.io Release
-        id: create_release_crates_io
-        with:
-          registry-token: ${{ secrets.CRATES_IO_TOKEN }}
+      # - name: Disable Branch Protections
+      #   uses: benjefferies/branch-protection-bot@1.0.5
+      #   id: disable_protections
+      #   if: always()
+      #   with:
+      #     access-token: ${{ secrets.CI_PUSH_TOKEN }}
+      #     enforce_admins: false
+      #     branch: ${{ github.ref }}
+      # - name: Generate Changelog
+      #   id: generate_changelog
+      #   run: |
+      #     git config user.email "$GITHUB_ACTOR@users.noreply.github.com"
+      #     git config user.name "$GITHUB_ACTOR"
+      #     ${{ env.LINUX_EXE }} merge -v ${{needs.setup.outputs.VERSION}} -d
+      #     git push
+      # - name: Enable Branch Protections
+      #   id: enable_protections
+      #   uses: benjefferies/branch-protection-bot@1.0.5
+      #   if: always()
+      #   with:
+      #     access-token: ${{ secrets.CI_PUSH_TOKEN }}
+      #     enforce_admins: true
+      #     branch: ${{ github.ref }}
+      # - name: Create Github Release
+      #   id: create_release_github
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.CI_PUSH_TOKEN }} # This token is provided by Actions, you do not need to create your own token
+      #   run: |
+      #     gh release create v${{ needs.setup.outputs.VERSION }} -t v${{ needs.setup.outputs.VERSION }} -F CHANGELOG.md ./artifacts/*.zip --target $(git rev-parse HEAD | xargs)
+      # - uses: katyo/publish-crates@v1
+      #   name: Create Crates.io Release
+      #   id: create_release_crates_io
+      #   with:
+      #     registry-token: ${{ secrets.CRATES_IO_TOKEN }}
