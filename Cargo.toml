@@ -1,6 +1,6 @@
 [package]
 name = "changelog-rust"
-version = "1.0.15"
+version = "1.0.19"
 authors = ["Adam Bratin <adam.bratin@gmail.com>"]
 edition = "2018"
 license-file = "./LICENSE"
