@@ -18,7 +18,7 @@ jobs:
         run: |
           sudo apt-get install jq
           echo "::set-output name=EXECUTABLE_NAME::$(jq '.name' .changelogrc | tr -d '"')"
-      - name: "Check if user has write access"
+      - name: "Check if user has admin access"
         uses: "lannonbr/repo-permission-check-action@2.0.0"
         with:
           permission: "admin"
