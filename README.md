@@ -1,4 +1,4 @@
-# Changelog-Cli
+# Changelog-Rust
 
 This tool is written in rust to be light weight and portable cli for the management and generation of chagelogs for software realease. The idea is to create a way for developers to maintain an up to date changelog with minimal overhead and great integration into CI/CD (agnostic tool that can be used in any CI/CD solution). The idea is for developers to create change files for every story/issue/task/bug/feature (depending of planning tooling the name differs). This prevents uglier solutions of messy git conflict when all developers change a single changelog file. Allows for nice auto generation of changelog file based on predefined template
 
@@ -14,7 +14,7 @@ Download correct version of OS.
 changelog
 
 USAGE:
-    changelog-cli [OPTIONS] <SUBCOMMAND>
+    changelog-rust [OPTIONS] <SUBCOMMAND>
 
 FLAGS:
     -h, --help       Prints help information
@@ -40,7 +40,7 @@ The init command is used to setup a repo to use the cli tool
 
 ```bash
 USAGE:
-    changelog-cli init [OPTIONS] --appName <app-name>
+    changelog-rust init [OPTIONS] --appName <app-name>
 
 FLAGS:
     -h, --help       Prints help information
@@ -62,7 +62,7 @@ It is possible to create a change file non interactive by passing the -t and -d 
 
 ```bash
 USAGE:
-    changelog-cli generate [OPTIONS]
+    changelog-rust generate [OPTIONS]
 
 FLAGS:
     -h, --help       Prints help information
@@ -80,7 +80,7 @@ The merge command is uesed to generate a changelog by parsing all the change fil
 
 ```bash
 USAGE:
-    changelog-cli merge [FLAGS] [OPTIONS]
+    changelog-rust merge [FLAGS] [OPTIONS]
 
 FLAGS:
     -d, --delete     whether to delete change files after changelog is created
@@ -111,7 +111,7 @@ schema:
 
 ```js
 {
-  "name": "changelog-cli", // this is the name of your application
+  "name": "changelog-rust", // this is the name of your application
   "extra_commit_args": ["--no-verify"], // this is optional if you need to skip git hooks
   "sections": [] // this is the list of change types that is used to generate sections in changelog
 }
@@ -154,7 +154,7 @@ the data accessible to the template is: (This is based on default from init comm
   "date": "05/03/2021", // date string in this format
   "versionNoV": "1.0.0", // the version string passed in without a v at front
   "version": "v1.0.0", // version string passed in with v at front
-  "name": "changelog-cli", // application name from .changelogrc
+  "name": "changelog-rust", // application name from .changelogrc
   // There is an entry for each Section from the .changelogrc
   "Feature": [
       {
@@ -175,7 +175,7 @@ any property on the change file based on handle bars syntax as shown in example 
 The output with the above template and data is:
 
 ```markdown
-# Release Notes changelog-cli Version 1.0.0
+# Release Notes changelog-rust Version 1.0.0
 
 05/03/2021
 
