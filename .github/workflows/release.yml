@@ -87,7 +87,7 @@ jobs:
   release:
     needs: [build_release, setup]
     env:
-      LINUX_EXE: artifacts/x86_64-unknown-linux-musl/changelog-cli
+      LINUX_EXE: artifacts/x86_64-unknown-linux-musl/changelog-rust
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -103,7 +103,7 @@ jobs:
           shopt -s globstar
           shopt -s extglob
           cd artifacts/
-          for input in $(ls -d -- **/changelog-cli?(.*)); do
+          for input in $(ls -d -- **/changelog-rust?(.*)); do
           chmod +x $input
           zip -j "$(basename $(dirname $input)).zip" $input
           done
@@ -157,9 +157,14 @@ jobs:
           access-token: ${{ secrets.CI_PUSH_TOKEN }}
           enforce_admins: true
           branch: ${{ github.ref }}
-      - name: Create Release
-        id: create_release
+      - name: Create Github Release
+        id: create_release_github
         env:
           GITHUB_TOKEN: ${{ secrets.CI_PUSH_TOKEN }} # This token is provided by Actions, you do not need to create your own token
         run: |
           gh release create v${{ needs.setup.outputs.VERSION }} -t v${{ needs.setup.outputs.VERSION }} -F CHANGELOG.md ./artifacts/*.zip --target $(git rev-parse HEAD | xargs)
+      - uses: katyo/publish-crates@v1
+        name: Create Crates.io Release
+        id: create_release_crates_io
+        with:
+          registry-token: ${{ secrets.CRATES_IO_TOKEN }}
