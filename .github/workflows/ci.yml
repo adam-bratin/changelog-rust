@@ -28,6 +28,19 @@ jobs:
         run: |
           sudo apt-get install jq
           echo "::set-output name=EXECUTABLE_NAME::$(jq '.name' .changelogrc | tr -d '"')"
+      - uses: dorny/paths-filter@v2
+        if: github.event_name == 'pull_request'
+        id: filter
+        with:
+          list-files: "none"
+          filters: |
+            changesAdded:
+            - added: 'changes/*.json'
+      - shell: bash
+        if: github.event_name == 'pull_request' && steps.filter.outputs.changesAdded == 'false'
+        run: |
+          echo "failed to find an added file in changes"
+          exit 1
 
   check:
     name: Check
