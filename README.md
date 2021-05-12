@@ -4,8 +4,26 @@ This tool is written in rust to be light weight and portable cli for the managem
 
 ## Installation
 
+### For Rust Users
+
+run cmd: `cargo install changelog-rust `
+
+### Use installation scripts
+
+#### Linux or OSX
+
+`wget -O - https://raw.githubusercontent.com/adam-bratin/changelog-rust/main/install/unix.sh | sh` </br>
+or </br>
+`curl -s http://example.com/script.sh | sh`
+
+#### Windows
+
+`powershell -Command {iwr -useb https://raw.githubusercontent.com/adam-bratin/changelog-rust/main/install/windows.ps1 | iex}`
+
+### Manual Installation
+
 Go to the downloads page for the latest release at: https://github.com/adam-bratin/changelog-rs/releases/latest
-Download correct version of OS.
+Download correct version of OS. </br>
 **NOTE** You may neeed to give the executable execute permissions
 
 ## Usage
