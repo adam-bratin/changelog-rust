@@ -6,9 +6,6 @@ on:
       - "README.md"
       - ".changelogrc"
   workflow_dispatch:
-env:
-  MAJOR: 1
-  MINOR: 0
 
 jobs:
   setup:
