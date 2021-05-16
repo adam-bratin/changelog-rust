@@ -13,7 +13,7 @@ jobs:
     outputs:
       EXECUTABLE_NAME: ${{ steps.setup.outputs.EXECUTABLE_NAME }}
       VERSION: ${{ steps.setup.outputs.VERSION }}
-      NEED_BUILD: ${{steps.filter.outputs.src == 'true' || steps.filter.outputs.deps == 'true' }}
+      NEED_BUILD: ${{steps.filter.outputs.src == 'true' || steps.filter.outputs.deps == 'true' || steps.filter.outputs.workflows == 'true' }}
     steps:
       - uses: actions/checkout@v2
       - uses: ./.github/workflows/setup
@@ -27,6 +27,8 @@ jobs:
               - 'src/**'
             deps:
               - '**/Cargo.@(toml|lock)'
+            workflows:
+              - '.github/workflows/**/*.yml'
             changesAdded:
               - added: 'changes/*.json'
       - shell: bash
