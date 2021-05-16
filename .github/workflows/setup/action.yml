@@ -8,7 +8,7 @@ inputs:
   minor:
     description: "Minor version number"
     required: false
-    default: 0
+    default: 1
 outputs:
   EXECUTABLE_NAME:
     description: "name of executable"
