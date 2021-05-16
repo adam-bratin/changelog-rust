@@ -16,6 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: ./.github/workflows/setup
+        id: setup
       - name: "Check if user has admin access"
         uses: "lannonbr/repo-permission-check-action@2.0.0"
         with:

@@ -4,6 +4,12 @@ on:
   # Triggers the workflow on push or pull request events but only for the main branch
   pull_request:
     branches: [main]
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - labeled
+      - unlabeled
 jobs:
   setup:
     runs-on: ubuntu-latest
