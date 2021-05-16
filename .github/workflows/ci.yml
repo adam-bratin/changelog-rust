@@ -37,8 +37,22 @@ jobs:
           echo "failed to find an added file in changes"
           exit 1
 
-  build_release:
+  wait_for_checks:
+    runs-on: ubuntu-latest
     needs: setup
+    steps:
+      - name: Wait on Checks
+        if: needs.setup.outputs.NEED_BUILD == 'true'
+        uses: lewagon/wait-on-check-action@1b1630e169116b58a4b933d5ad7effc46d3d312d
+        with:
+          ref: ${{ github.ref }}
+          check-regexp: .?-task
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 180 # seconds
+          allowed-conclusions: success,skipped
+
+  build_release:
+    needs: [setup, wait_for_checks]
     strategy:
       matrix:
         include:
@@ -67,15 +81,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         if: needs.setup.outputs.NEED_BUILD == 'true'
-      - name: Wait on Checks
-        if: needs.setup.outputs.NEED_BUILD == 'true'
-        uses: lewagon/wait-on-check-action@1b1630e169116b58a4b933d5ad7effc46d3d312d
-        with:
-          ref: ${{ github.ref }}
-          check-regexp: .?-task
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-          wait-interval: 180 # seconds
-          allowed-conclusions: success,skipped
 
       - uses: actions-rs/toolchain@v1
         if: needs.setup.outputs.NEED_BUILD == 'true'
