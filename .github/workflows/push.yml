@@ -38,10 +38,10 @@ jobs:
           override: true
       - uses: Swatinem/rust-cache@v1
       - run: rustup component add clippy
-      - uses: actions-rs/clippy-check@v1
+      - uses: actions-rs/clippy-check@v1.0.7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          args: --all-features -- -D warnings
+          args: --all-targets --all-features -- -D warnings
 
   check:
     name: Check-task
