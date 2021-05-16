@@ -10,11 +10,13 @@ runs:
     MAJOR: ${{env.MAJOR}}
     MINOR: ${{env.MINOR}}
     VERSION: "${{ env.MAJOR }}.${{ env.MINOR }}.${{ github.run_number }}"
-  steps:
-    - name: Set EXECUTABLE_NAME
-      id: set_output
-      shell: bash
-      run: |
-        sudo apt-get install jq
-        echo ${{ github.workspace }}
-        echo "::set-output name=EXECUTABLE_NAME::$(jq '.name' ${{ github.workspace }}/.changelogrc | tr -d '"')"
+  runs:
+    using: "composite"
+    steps:
+      - name: Set EXECUTABLE_NAME
+        id: set_output
+        shell: bash
+        run: |
+          sudo apt-get install jq
+          echo ${{ github.workspace }}
+          echo "::set-output name=EXECUTABLE_NAME::$(jq '.name' ${{ github.workspace }}/.changelogrc | tr -d '"')"
