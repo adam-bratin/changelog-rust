@@ -14,15 +14,11 @@ jobs:
   setup:
     runs-on: ubuntu-latest
     outputs:
-      EXECUTABLE_NAME: ${{ steps.set_output.outputs.EXECUTABLE_NAME }}
-      VERSION: "${{ env.MAJOR }}.${{ env.MINOR }}.${{ github.run_number }}"
+      EXECUTABLE_NAME: ${{ steps.setup.outputs.EXECUTABLE_NAME }}
+      VERSION: ${{ steps.setup.outputs.VERSION }}
     steps:
       - uses: actions/checkout@v2
-      - name: Set EXECUTABLE_NAME
-        id: set_output
-        run: |
-          sudo apt-get install jq
-          echo "::set-output name=EXECUTABLE_NAME::$(jq '.name' .changelogrc | tr -d '"')"
+      - uses: ./.github/workflows/setup
       - name: "Check if user has admin access"
         uses: "lannonbr/repo-permission-check-action@2.0.0"
         with:
