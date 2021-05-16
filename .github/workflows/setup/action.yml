@@ -1,22 +1,28 @@
 name: "Setup Action"
 description: "Sets exe path and version"
+inputs:
+  major:
+    description: "Major version number"
+    required: false
+    default: 1
+  minor:
+    description: "Minor version number"
+    required: false
+    default: 0
+outputs:
+  EXECUTABLE_NAME:
+    description: "name of executable"
+    value: ${{ steps.set_output.outputs.EXECUTABLE_NAME }}
+  VERSION:
+    description: "Version of executable"
+    value: "${{ inputs.major }}.${{ inputs.minor }}.${{ github.run_number }}"
 runs:
   using: "composite"
-  env:
-    MAJOR: 1
-    MINOR: 0
-  outputs:
-    EXECUTABLE_NAME: ${{ steps.set_output.outputs.EXECUTABLE_NAME }}
-    MAJOR: ${{env.MAJOR}}
-    MINOR: ${{env.MINOR}}
-    VERSION: "${{ env.MAJOR }}.${{ env.MINOR }}.${{ github.run_number }}"
-  runs:
-    using: "composite"
-    steps:
-      - name: Set EXECUTABLE_NAME
-        id: set_output
-        shell: bash
-        run: |
-          sudo apt-get install jq
-          echo ${{ github.workspace }}
-          echo "::set-output name=EXECUTABLE_NAME::$(jq '.name' ${{ github.workspace }}/.changelogrc | tr -d '"')"
+  steps:
+    - name: Set EXECUTABLE_NAME
+      id: set_output
+      shell: bash
+      run: |
+        sudo apt-get install jq
+        echo ${{ github.workspace }}
+        echo "::set-output name=EXECUTABLE_NAME::$(jq '.name' ${{ github.workspace }}/.changelogrc | tr -d '"')"
