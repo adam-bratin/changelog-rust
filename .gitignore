@@ -77,3 +77,7 @@ artifacts/
 
 # ignore auto gen CHANGELOG.md
 CHANGELOG.md
+
+#ignore env files
+.env
+.secrets

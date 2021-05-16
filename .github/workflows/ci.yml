@@ -7,102 +7,36 @@ on:
     # TODO: #15 figure out way to only run checks on files than need rebuild
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
-env:
-  MAJOR: 1
-  MINOR: 0
 jobs:
   setup:
     runs-on: ubuntu-latest
     outputs:
-      EXECUTABLE_NAME: ${{ steps.set_output.outputs.EXECUTABLE_NAME }}
-      VERSION: "${{ env.MAJOR }}.${{ env.MINOR }}.${{ github.run_number }}"
+      EXECUTABLE_NAME: ${{ steps.setup.outputs.EXECUTABLE_NAME }}
+      VERSION: ${{ steps.setup.outputs.VERSION }}
+      NEED_BUILD: ${{steps.filter.outputs.src == 'true' || steps.filter.outputs.deps == 'true' }}
     steps:
       - uses: actions/checkout@v2
-      - name: Set EXECUTABLE_NAME
-        id: set_output
-        run: |
-          sudo apt-get install jq
-          echo "::set-output name=EXECUTABLE_NAME::$(jq '.name' .changelogrc | tr -d '"')"
+      - uses: ./.github/workflows/setup
+        id: setup
       - uses: dorny/paths-filter@v2
-        if: github.event_name == 'pull_request'
         id: filter
         with:
           list-files: "none"
           filters: |
+            src:
+              - 'src/**'
+            deps:
+              - '**/Cargo.@(toml|lock)'
             changesAdded:
-            - added: 'changes/*.json'
+              - added: 'changes/*.json'
       - shell: bash
         if: github.event_name == 'pull_request' && steps.filter.outputs.changesAdded == 'false'
         run: |
           echo "failed to find an added file in changes"
           exit 1
 
-  check:
-    name: Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: Swatinem/rust-cache@v1
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: check
-
-  test:
-    name: Test Suite
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: Swatinem/rust-cache@v1
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: test
-
-  fmt:
-    name: Rustfmt
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: Swatinem/rust-cache@v1
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - run: rustup component add rustfmt
-      - uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all -- --check
-
-  clippy:
-    name: Clippy
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
-      - uses: Swatinem/rust-cache@v1
-      - uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-      - run: rustup component add clippy
-      - uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: -- -D warnings
-
   build_release:
-    needs: [setup, check, test, fmt, clippy]
+    needs: setup
     strategy:
       matrix:
         include:
@@ -130,19 +64,34 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v2
-      - uses: Swatinem/rust-cache@v1
+        if: needs.setup.outputs.NEED_BUILD == 'true'
+      - name: Wait on Checks
+        if: needs.setup.outputs.NEED_BUILD == 'true'
+        uses: lewagon/wait-on-check-action@1b1630e169116b58a4b933d5ad7effc46d3d312d
+        with:
+          ref: ${{ github.ref }}
+          check-regexp: .?-task
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          wait-interval: 180 # seconds
+          allowed-conclusions: success,skipped
+
       - uses: actions-rs/toolchain@v1
+        if: needs.setup.outputs.NEED_BUILD == 'true'
         with:
           profile: minimal
           toolchain: stable
           override: true
           target: x86_64-unknown-linux-musl
+      - uses: Swatinem/rust-cache@v1
+        if: needs.setup.outputs.NEED_BUILD == 'true'
       - uses: actions-rs/cargo@v1
+        if: needs.setup.outputs.NEED_BUILD == 'true'
         with:
           use-cross: ${{ matrix.useCross }}
           command: build
           args: --release --target=${{ matrix.target }}
       - uses: actions/upload-artifact@master
+        if: needs.setup.outputs.NEED_BUILD == 'true'
         with:
           name: ${{ matrix.target }}
           path: ./target/${{ matrix.target }}/release/${{ needs.setup.outputs.EXECUTABLE_NAME }}${{ matrix.suffix }}
